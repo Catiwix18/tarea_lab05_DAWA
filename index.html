@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat con Socket.IO</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f6f8fa;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: url('https://cdn.shortpixel.ai/spai/w_898+q_+ret_img+to_webp/https://www.eude.es/wp-content/uploads/2023/06/NOTICIAS-EUDE-2-820x450.jpg'); /* Reemplaza 'ruta/a/la/imagen.jpg' con la URL de tu imagen */
+            background-size: cover; /* Ajusta el tamaño de la imagen para cubrir todo el fondo */
+            background-position: center; /* Centra la imagen en el fondo */
+            background-repeat: no-repeat; /* Evita que la imagen se repita */
+        }
+        
+
+        .chat-container {
+            width: 400px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .nombre-chat {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #7b3876; /* Color de fondo del encabezado Chat */
+            border-bottom: 2px solid #5b4894; /* Borde inferior */
+        }
+
+        .nombre-chat img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .chat-header {
+            background-color: #834dafe6; /* Fondo del encabezado del chat */
+            color: #fff;
+            padding: 12px;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        .chat-body {
+            padding: 20px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: #fff; /* Fondo del área de mensajes */
+        }
+
+        .chat-input {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: #f6f6f6;
+            border-top: 1px solid #ddd;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-right: 10px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #5b4894; /* Color de fondo del botón */
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #621fa0; /* Cambio de color al pasar el cursor sobre el botón */
+        }
+
+        /* Estilos generales para los mensajes */
+        .mensaje {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            max-width: 70%; /* Limitar el ancho del mensaje */
+            word-wrap: break-word;
+            color: #fff; 
+        }
+
+        /* Estilos para los mensajes en Chat 1 */
+        .chat-1 .mensaje {
+            background-color: #4b8976; /* Color de fondo de los mensajes en Chat 1 */
+            margin-left: 50%;
+        }
+
+        /* Estilos para los mensajes del chat contrario en Chat 1 */
+        .chat-1 .mensaje-otro-chat {
+            background-color: #a0a84c; /* Color de fondo de los mensajes del otro chat en Chat 1 */
+            margin-left:50%;
+             /* Mover el mensaje al lado derecho */
+        }
+
+        /* Estilos para los mensajes en Chat 2 */
+        .chat-2 .mensaje {
+            background-color: #8b2391; /* Color de fondo de los mensajes en Chat 2 */
+            margin-right: auto; /* Mover el mensaje al lado derecho en Chat 2 */
+        }
+
+        /* Estilos para los mensajes del chat contrario en Chat 2 */
+        .chat-2 .mensaje-otro-chat {
+            background-color: #d57bd5; /* Color de fondo de los mensajes del otro chat en Chat 2 */
+            margin-left: auto; /* Mover el mensaje al lado derecho */
+        }
+
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+
+        function cambiarNombre(chatId) {
+            var nuevoNombreInput = document.getElementById('nuevo-nombre-chat' + chatId);
+            var nuevoNombre = nuevoNombreInput.value.trim();
+
+            if (nuevoNombre !== '') {
+                socket.emit('cambiar nombre', { chatId: chatId, nuevoNombre: nuevoNombre });
+                nuevoNombreInput.value = ''; // Limpiar el campo después de enviar
+            }
+        }
+
+        function cambiarImagen(chatId) {
+            var nuevaImagenUrl = prompt('Introduce la URL de la nueva imagen:');
+            if (nuevaImagenUrl) {
+                var imagenChat = document.getElementById('imagen-chat' + chatId);
+                imagenChat.src = nuevaImagenUrl;
+            }
+        }
+
+        // Escuchar cambios de nombre desde el servidor
+        socket.on('nombre cambiado', function(data) {
+            var chatId = data.chatId;
+            var nuevoNombre = data.nuevoNombre;
+            var nombreChatText = document.getElementById('nombre-chat-text' + chatId);
+            if (nombreChatText) {
+                nombreChatText.textContent = nuevoNombre;
+            }
+        });
+
+        // Función para enviar un mensaje
+        function enviarMensaje(chatId) {
+            var mensajeInput = document.getElementById('mensaje' + chatId);
+            var mensaje = mensajeInput.value.trim();
+            var nombreChat = document.getElementById('nombre-chat-text' + chatId).textContent;
+            var hora = obtenerHoraActual();
+
+            if (mensaje !== '') {
+                // Emitir el mensaje al servidor
+                socket.emit('chat message', {
+                    chatId: chatId,
+                    nombre: nombreChat,
+                    mensaje: mensaje,
+                    hora: hora
+                });
+
+                // Limpiar el campo de mensaje después de enviar
+                mensajeInput.value = '';
+            }
+
+            return false; // Evitar que el formulario se envíe
+        }
+
+        // Escuchar eventos de mensajes para cada chat
+        socket.on('chat message 1', function(data) {
+            mostrarMensaje(data, 'lista-mensajes-1');
+        });
+
+        socket.on('chat message 2', function(data) {
+            mostrarMensaje(data, 'lista-mensajes-2');
+        });
+
+       // Función para mostrar un mensaje
+        function mostrarMensaje(data) {
+            var chatId = data.chatId;
+            var listaMensajes = document.getElementById('lista-mensajes-' + chatId);
+            var mensajeContainer = document.createElement('div');
+            mensajeContainer.className = "mensaje";
+
+            var esUsuarioMensaje = data.origenChat === chatId;
+
+            if (esUsuarioMensaje) {
+                mensajeContainer.classList.add('mensaje-usuario');
+            } else {
+                mensajeContainer.classList.add('mensaje-otro-chat');
+                mensajeContainer.style.marginLeft = chatId === 2 ? 'auto' : ''; // Mensaje a la derecha en Chat 2
+            }
+
+            var nombre = document.createElement('strong');
+            nombre.textContent = data.nombre + ': ';
+
+            var mensajeTexto = document.createElement('span');
+            mensajeTexto.textContent = data.mensaje + ' (' + data.hora + ')';
+
+            mensajeContainer.appendChild(nombre);
+            mensajeContainer.appendChild(mensajeTexto);
+
+            listaMensajes.appendChild(mensajeContainer);
+            listaMensajes.scrollTop = listaMensajes.scrollHeight;
+
+            // Clonar el mensaje para mostrarlo en el otro chat
+            var otroChatId = chatId === 1 ? 2 : 1;
+            var otroChatListaMensajes = document.getElementById('lista-mensajes-' + otroChatId);
+            var mensajeClonado = mensajeContainer.cloneNode(true);
+
+            if (esUsuarioMensaje) {
+                mensajeClonado.classList.remove('mensaje-usuario');
+                mensajeClonado.classList.add('mensaje-otro-chat');
+                mensajeClonado.style.marginLeft = otroChatId === 1 ? 'auto' : ''; // Mensaje a la derecha en Chat contrario
+            } else {
+                mensajeClonado.classList.remove('mensaje-otro-chat');
+                mensajeClonado.classList.add('mensaje-usuario');
+            }
+
+            otroChatListaMensajes.appendChild(mensajeClonado);
+            otroChatListaMensajes.scrollTop = otroChatListaMensajes.scrollHeight;
+        }
+
+        // Escuchar eventos de mensajes para cada chat
+        socket.on('chat message', function(data) {
+            mostrarMensaje(data);
+        });
+
+        function obtenerHoraActual() {
+            const ahora = new Date();
+            return ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        }
+    </script>
+</head>
+<body>
+    <!-- Chat 1 -->
+    <div class="chat-container chat-1">
+        <div class="chat-header" id="chat-header-1">
+            <input id="nuevo-nombre-chat1" type="text" placeholder="Nuevo nombre">
+            <button onclick="cambiarNombre(1)">Cambiar</button>
+        </div>
+        <div class="nombre-chat" id="nombre-chat1">
+            <img id="imagen-chat1" src="https://via.placeholder.com/30" onclick="cambiarImagen(1)" />
+            <span id="nombre-chat-text1" contenteditable="true">Chat 1</span>
+        </div>
+        <div class="chat-body" id="lista-mensajes-1"></div>
+        <div class="chat-input">
+            <input id="mensaje1" type="text" placeholder="Escribe un mensaje" autocomplete="off" />
+            <button onclick="return enviarMensaje(1)">Enviar</button>
+        </div>
+       
+    </div>
+
+    <!-- Chat 2 -->
+    <div class="chat-container chat-2">
+        <div class="chat-header" id="chat-header-2">
+            <input id="nuevo-nombre-chat2" type="text" placeholder="Nuevo nombre">
+            <button onclick="cambiarNombre(2)">Cambiar</button>
+        </div>
+        <div class="nombre-chat" id="nombre-chat2">
+            <img id="imagen-chat2" src="https://via.placeholder.com/30" onclick="cambiarImagen(2)" />
+            <span id="nombre-chat-text2">Chat 2</span>
+        </div>
+        <div class="chat-body" id="lista-mensajes-2"></div>
+        <div class="chat-input">
+            <input id="mensaje2" type="text" placeholder="Escribe un mensaje" autocomplete="off" />
+            <button onclick="return enviarMensaje(2)">Enviar</button>
+        </div>
+        
+    </div>
+</body>
+</html>
